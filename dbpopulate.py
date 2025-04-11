@@ -1,90 +1,77 @@
-import streamlit as st
 import sqlite3
 
-# Função para criar o banco de dados e tabelas
-def criar_banco():
+def popular_banco():
     conn = sqlite3.connect('zoneamento.db')
     cursor = conn.cursor()
 
-    # Cria as tabelas
-    cursor.executescript('''
-        CREATE TABLE IF NOT EXISTS cidade (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            estado TEXT NOT NULL
-        );
+    # Inserir cidade Joinville
+    cursor.execute("INSERT OR IGNORE INTO cidade (id, nome, estado) VALUES (1, 'Joinville', 'SC')")
 
-        CREATE TABLE IF NOT EXISTS macrozona (
-            codigo       VARCHAR(4) PRIMARY KEY,
-            descricao    TEXT NOT NULL,
-            cidade_id    INTEGER NOT NULL,
-            FOREIGN KEY (cidade_id) REFERENCES cidade(id)
-        );
+    cursor.executescript("""
+        -- Macrozona
+        INSERT OR IGNORE INTO macrozona (codigo, descricao, cidade_id) VALUES
+            ('ARPA', 'Área Rural de Proteção Ambiental', 1),
+            ('ARUC', 'Área Rural de Utilização Controlada', 1),
+            ('AUAP', 'Área Urbana de Adensamento Prioritário', 1),
+            ('AUAS', 'Área Urbana de Adensamento Secundário', 1),
+            ('AUAC', 'Área Urbana de Adensamento Controlado', 1),
+            ('AUAE', 'Área Urbana de Adensamento Especial', 1),
+            ('AUPA', 'Área Urbana de Proteção Ambiental', 1);
 
-        CREATE TABLE IF NOT EXISTS zona (
-            codigo            VARCHAR(10) PRIMARY KEY,
-            nome              TEXT NOT NULL,
-            macrozona_codigo  VARCHAR(4),
-            cidade_id         INTEGER NOT NULL,
-            CONSTRAINT fk_zona_macrozona FOREIGN KEY (macrozona_codigo) REFERENCES macrozona(codigo),
-            FOREIGN KEY (cidade_id) REFERENCES cidade(id)
-        );
+        -- Zona
+        INSERT OR IGNORE INTO zona (codigo, nome, macrozona_codigo, cidade_id) VALUES
+            ('SA-01', 'Setor de Adensamento Prioritário 01 (Centro)', 'AUAP', 1),
+            ('SA-02', 'Setor de Adensamento Prioritário 02 (Norte/Sul)', 'AUAP', 1),
+            ('SA-03', 'Setor de Adensamento Secundário', 'AUAS', 1),
+            ('SA-04', 'Setor de Adensamento Controlado', 'AUAC', 1),
+            ('SA-05', 'Setor de Adensamento Especial', 'AUAE', 1),
+            ('SE-01', 'Setor Especial de Interesse Cultural', 'AUAP', 1),
+            ('SE-02', 'Setor Especial de Interesse Público', 'AUAP', 1),
+            ('SE-03', 'Setor Especial de Interesse Educacional', 'AUAS', 1),
+            ('SE-04', 'Setor Especial de Conservação de Morros', NULL, 1),
+            ('SE-05', 'Setor Especial de Conservação de Várzeas', NULL, 1),
+            ('SE-06', 'Setor Especial de Interesse Industrial', 'AUAC', 1),
+            ('SE-06A','Setor Especial de Interesse Industrial Misto', 'AUAC', 1),
+            ('SE-07', 'Setor Especial 07 (índices definidos por lei específica)', NULL, 1),
+            ('SE-08', 'Setor Especial de Centralidade Urbana', NULL, 1),
+            ('SE-09', 'Setor Especial de Interesse de Segurança Pública', 'AUAS', 1);
 
-        CREATE TABLE IF NOT EXISTS parametros_urbanisticos (
-            macrozona_codigo   VARCHAR(4) NOT NULL,
-            zona_codigo        VARCHAR(10),
-            coeficiente_aprov  NUMERIC(3,1) NOT NULL,
-            gabarito_maximo    INTEGER NOT NULL,
-            area_minima_lote   INTEGER NOT NULL,
-            taxa_ocupacao_max  NUMERIC(5,2) NOT NULL,
-            cidade_id          INTEGER NOT NULL,
-            PRIMARY KEY (macrozona_codigo, zona_codigo, cidade_id),
-            CONSTRAINT fk_param_macrozona FOREIGN KEY (macrozona_codigo) REFERENCES macrozona(codigo),
-            CONSTRAINT fk_param_zona FOREIGN KEY (zona_codigo) REFERENCES zona(codigo),
-            FOREIGN KEY (cidade_id) REFERENCES cidade(id)
-        );
+        -- Parametros urbanisticos (exemplos resumidos)
+        INSERT OR IGNORE INTO parametros_urbanisticos (macrozona_codigo, zona_codigo, coeficiente_aprov, gabarito_maximo, area_minima_lote, taxa_ocupacao_max, cidade_id) VALUES
+            ('AUAP','SA-01', 4.0, 45, 240, 0.60, 1),
+            ('AUAP','SA-02', 3.0, 25, 240, 0.60, 1),
+            ('AUAS','SA-03', 2.0, 15, 240, 0.60, 1),
+            ('AUAC','SA-04', 1.5, 9,  240, 0.60, 1),
+            ('AUAE','SA-05', 1.0, 9,  450, 0.60, 1),
+            ('AUPA',NULL,   0.1, 9,  5000, 0.10, 1),
+            ('ARPA',NULL,   0.1, 9, 20000, 0.05, 1),
+            ('ARUC',NULL,   0.1, 9, 20000, 0.10, 1);
 
-        CREATE TABLE IF NOT EXISTS usos_permitidos (
-            macrozona_codigo   VARCHAR(4) NOT NULL,
-            zona_codigo        VARCHAR(10),
-            tipo_uso           VARCHAR(100) NOT NULL,
-            porte              VARCHAR(20),
-            cnae               VARCHAR(50),
-            permissao          VARCHAR(20) NOT NULL,
-            cidade_id          INTEGER NOT NULL,
-            PRIMARY KEY (macrozona_codigo, zona_codigo, tipo_uso, porte, cidade_id),
-            CONSTRAINT fk_uso_macrozona FOREIGN KEY (macrozona_codigo) REFERENCES macrozona(codigo),
-            CONSTRAINT fk_uso_zona FOREIGN KEY (zona_codigo) REFERENCES zona(codigo),
-            FOREIGN KEY (cidade_id) REFERENCES cidade(id)
-        );
+        -- Usos permitidos
+        INSERT OR IGNORE INTO usos_permitidos (macrozona_codigo, zona_codigo, tipo_uso, porte, cnae, permissao, cidade_id) VALUES
+            ('AUAP', 'SA-01', 'Residencial Unifamiliar', NULL, NULL, 'Permitido', 1),
+            ('AUAP', 'SA-01', 'Residencial Multifamiliar', NULL, NULL, 'Permitido', 1),
+            ('AUPA', NULL, 'Residencial Multifamiliar', NULL, NULL, 'Proibido', 1),
+            ('ARPA', NULL, 'Residencial Unifamiliar', NULL, NULL, 'Permitido', 1),
+            ('AUAP', 'SA-02', 'Comércio Varejista', 'Pequeno Porte', '45 e 47', 'Permitido', 1),
+            ('AUAS', 'SA-03', 'Comércio Varejista', 'Pequeno Porte', '45 e 47', 'Condicionado', 1),
+            ('AUAC', 'SA-04', 'Comércio Varejista', 'Pequeno Porte', '45 e 47', 'Proibido', 1);
 
-        CREATE TABLE IF NOT EXISTS faixa_especial (
-            codigo       VARCHAR(10) PRIMARY KEY,
-            descricao    TEXT NOT NULL,
-            cidade_id    INTEGER NOT NULL,
-            FOREIGN KEY (cidade_id) REFERENCES cidade(id)
-        );
+        -- Faixa especial
+        INSERT OR IGNORE INTO faixa_especial (codigo, descricao, cidade_id) VALUES
+            ('FV', 'Faixa Viária', 1),
+            ('FR', 'Faixa Rodoviária', 1);
 
-        CREATE TABLE IF NOT EXISTS zona_faixa_especial (
-            zona_codigo   VARCHAR(10) NOT NULL,
-            faixa_codigo  VARCHAR(10) NOT NULL,
-            cidade_id     INTEGER NOT NULL,
-            PRIMARY KEY (zona_codigo, faixa_codigo, cidade_id),
-            CONSTRAINT fk_zona_faixa_zona FOREIGN KEY (zona_codigo) REFERENCES zona(codigo),
-            CONSTRAINT fk_zona_faixa_faixa FOREIGN KEY (faixa_codigo) REFERENCES faixa_especial(codigo),
-            FOREIGN KEY (cidade_id) REFERENCES cidade(id)
-        );
-    ''')
+        -- Zona-faixa especial
+        INSERT OR IGNORE INTO zona_faixa_especial (zona_codigo, faixa_codigo, cidade_id) VALUES
+            ('SA-01', 'FV', 1),
+            ('SA-02', 'FV', 1),
+            ('SA-02', 'FR', 1),
+            ('SA-03', 'FV', 1),
+            ('SA-03', 'FR', 1),
+            ('SA-04', 'FR', 1),
+            ('SA-05', 'FV', 1);
+    """)
 
     conn.commit()
     conn.close()
-
-# --- Streamlit App ---
-
-st.title("Criar Banco de Dados de Zoneamento")
-
-st.write("Este app cria o banco de dados com as tabelas necessárias para o gerenciamento de zoneamento.")
-
-if st.button("Criar Banco de Dados"):
-    criar_banco()
-    st.success("Banco de dados 'zoneamento.db' criado com sucesso!")
