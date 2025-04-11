@@ -4,9 +4,12 @@ def popular_banco():
     conn = sqlite3.connect('zoneamento.db')
     cursor = conn.cursor()
 
-    # Inserir cidade Joinville
-    cursor.execute("INSERT OR IGNORE INTO cidade (id, nome, estado) VALUES (1, 'Joinville', 'SC')")
+    # Inserir a cidade Joinville - SC
+    cursor.execute("""
+        INSERT OR IGNORE INTO cidade (id, nome, estado) VALUES (1, 'Joinville', 'SC')
+    """)
 
+    # Inserir dados nas outras tabelas
     cursor.executescript("""
         -- Macrozona
         INSERT OR IGNORE INTO macrozona (codigo, descricao, cidade_id) VALUES
@@ -36,18 +39,18 @@ def popular_banco():
             ('SE-08', 'Setor Especial de Centralidade Urbana', NULL, 1),
             ('SE-09', 'Setor Especial de Interesse de Segurança Pública', 'AUAS', 1);
 
-        -- Parametros urbanisticos (exemplos resumidos)
+        -- Parametros Urbanisticos
         INSERT OR IGNORE INTO parametros_urbanisticos (macrozona_codigo, zona_codigo, coeficiente_aprov, gabarito_maximo, area_minima_lote, taxa_ocupacao_max, cidade_id) VALUES
             ('AUAP','SA-01', 4.0, 45, 240, 0.60, 1),
             ('AUAP','SA-02', 3.0, 25, 240, 0.60, 1),
             ('AUAS','SA-03', 2.0, 15, 240, 0.60, 1),
-            ('AUAC','SA-04', 1.5, 9,  240, 0.60, 1),
-            ('AUAE','SA-05', 1.0, 9,  450, 0.60, 1),
-            ('AUPA',NULL,   0.1, 9,  5000, 0.10, 1),
-            ('ARPA',NULL,   0.1, 9, 20000, 0.05, 1),
-            ('ARUC',NULL,   0.1, 9, 20000, 0.10, 1);
+            ('AUAC','SA-04', 1.5, 9, 240, 0.60, 1),
+            ('AUAE','SA-05', 1.0, 9, 450, 0.60, 1),
+            ('AUPA', NULL, 0.1, 9, 5000, 0.10, 1),
+            ('ARPA', NULL, 0.1, 9, 20000, 0.05, 1),
+            ('ARUC', NULL, 0.1, 9, 20000, 0.10, 1);
 
-        -- Usos permitidos
+        -- Usos Permitidos
         INSERT OR IGNORE INTO usos_permitidos (macrozona_codigo, zona_codigo, tipo_uso, porte, cnae, permissao, cidade_id) VALUES
             ('AUAP', 'SA-01', 'Residencial Unifamiliar', NULL, NULL, 'Permitido', 1),
             ('AUAP', 'SA-01', 'Residencial Multifamiliar', NULL, NULL, 'Permitido', 1),
@@ -57,12 +60,12 @@ def popular_banco():
             ('AUAS', 'SA-03', 'Comércio Varejista', 'Pequeno Porte', '45 e 47', 'Condicionado', 1),
             ('AUAC', 'SA-04', 'Comércio Varejista', 'Pequeno Porte', '45 e 47', 'Proibido', 1);
 
-        -- Faixa especial
+        -- Faixa Especial
         INSERT OR IGNORE INTO faixa_especial (codigo, descricao, cidade_id) VALUES
             ('FV', 'Faixa Viária', 1),
             ('FR', 'Faixa Rodoviária', 1);
 
-        -- Zona-faixa especial
+        -- Zona Faixa Especial
         INSERT OR IGNORE INTO zona_faixa_especial (zona_codigo, faixa_codigo, cidade_id) VALUES
             ('SA-01', 'FV', 1),
             ('SA-02', 'FV', 1),
