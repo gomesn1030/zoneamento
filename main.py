@@ -41,7 +41,7 @@ def cadastrar_cidade():
                 conn.commit()
                 conn.close()
                 st.success(f"Cidade '{nome} - {estado}' cadastrada com sucesso!")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.warning("Preencha todos os campos.")
 

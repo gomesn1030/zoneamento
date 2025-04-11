@@ -28,7 +28,7 @@ def crud_app(cidade_id):
                 )
                 conn.commit()
                 st.success("Macrozona cadastrada com sucesso!")
-                st.experimental_rerun()
+                st.rerun()
             except sqlite3.IntegrityError:
                 st.error("Erro: Código já cadastrado.")
         else:
