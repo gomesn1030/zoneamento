@@ -1,58 +1,87 @@
 import streamlit as st
 import sqlite3
+import os
 import dbcreate
 import dbpopulate
 import localizar
 import crud
-import os
+
+# Verificar e criar estrutura do banco de dados se necessário
+def verifica_cria_banco():
+    if not os.path.exists('zoneamento.db'):
+        dbcreate.criar_banco()
+    else:
+        conn = sqlite3.connect('zoneamento.db')
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT 1 FROM cidade LIMIT 1")
+        except sqlite3.OperationalError:
+            dbcreate.criar_banco()
+        conn.close()
+
+# Chamar a verificação no início do app
+verifica_cria_banco()
+
+# --- Interface do App ---
 
 st.set_page_config(page_title="Zoneamento Urbano", layout="wide")
 
-st.title("Sistema de Zoneamento Urbano")
+st.sidebar.header("Gerenciamento de Cidades")
 
-# --- Funções auxiliares ---
+# Cadastrar nova cidade
+def cadastrar_cidade():
+    with st.sidebar.expander("Cadastrar Nova Cidade"):
+        nome = st.text_input("Nome da Cidade")
+        estado = st.text_input("Estado (UF)")
+        if st.button("Cadastrar Cidade"):
+            if nome and estado:
+                conn = sqlite3.connect('zoneamento.db')
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO cidade (nome, estado) VALUES (?, ?)", (nome, estado))
+                conn.commit()
+                conn.close()
+                st.success(f"Cidade '{nome} - {estado}' cadastrada com sucesso!")
+                st.experimental_rerun()
+            else:
+                st.warning("Preencha todos os campos.")
+
+# Listar cidades cadastradas
 def listar_cidades():
     conn = sqlite3.connect('zoneamento.db')
-    cidades = conn.execute("SELECT id, nome FROM cidade").fetchall()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nome FROM cidade")
+    cidades = cursor.fetchall()
     conn.close()
     return cidades
 
-def cadastrar_cidade(nome, estado):
-    conn = sqlite3.connect('zoneamento.db')
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO cidade (nome, estado) VALUES (?, ?)", (nome, estado))
-    conn.commit()
-    conn.close()
+# --- Fluxo principal ---
 
-# --- Sidebar ---
-st.sidebar.header("Gerenciamento de Cidades")
+cadastrar_cidade()
+
 cidades = listar_cidades()
-cidade_nome = st.sidebar.selectbox("Escolha uma cidade:", [c[1] for c in cidades])
-cidade_id = [c[0] for c in cidades if c[1] == cidade_nome][0]
+cidade_id_nome = {cid: nome for cid, nome in cidades}
 
-st.sidebar.subheader("Cadastrar Nova Cidade")
-nome_nova_cidade = st.sidebar.text_input("Nome da nova cidade")
-estado_nova_cidade = st.sidebar.text_input("Estado da nova cidade")
-if st.sidebar.button("Cadastrar Cidade"):
-    if nome_nova_cidade and estado_nova_cidade:
-        cadastrar_cidade(nome_nova_cidade, estado_nova_cidade)
-        st.experimental_rerun()
-    else:
-        st.sidebar.error("Preencha todos os campos para cadastrar uma cidade.")
-
-menu = st.sidebar.selectbox(
-    "Escolha uma opção:", 
-    ["Início", "Criar Banco de Dados", "Popular Banco de Dados", "Pesquisar Uso Permitido", "Cadastros"]
+cidade_selecionada_nome = st.sidebar.selectbox(
+    "Escolha a Cidade", list(cidade_id_nome.values())
 )
 
-# --- Menu Principal ---
+# Encontrar o ID da cidade selecionada
+cidade_selecionada_id = None
+for cid, nome in cidade_id_nome.items():
+    if nome == cidade_selecionada_nome:
+        cidade_selecionada_id = cid
+        break
+
+# Cabeçalho principal
+st.title(f"Sistema de Zoneamento Urbano - {cidade_selecionada_nome}")
+
+menu = st.sidebar.selectbox(
+    "Escolha uma opção:",
+    ["Início", "Popular Banco de Dados", "Pesquisar Uso Permitido", "Cadastros"]
+)
+
 if menu == "Início":
     st.write("Bem-vindo ao sistema de gerenciamento de zoneamento urbano.")
-
-elif menu == "Criar Banco de Dados":
-    if st.button("Criar Banco"):
-        dbcreate.criar_banco()
-        st.success("Banco de dados criado com sucesso!")
 
 elif menu == "Popular Banco de Dados":
     if st.button("Popular Banco"):
@@ -60,7 +89,7 @@ elif menu == "Popular Banco de Dados":
         st.success("Banco de dados populado com sucesso!")
 
 elif menu == "Pesquisar Uso Permitido":
-    localizar.pesquisar_uso()
+    localizar.pesquisar_uso(cidade_selecionada_id)
 
 elif menu == "Cadastros":
-    crud.crud_app()
+    crud.crud_app(cidade_selecionada_id)
