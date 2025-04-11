@@ -2,8 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 
-# Funções auxiliares
-
+# --- Funções auxiliares ---
 def conectar():
     return sqlite3.connect('zoneamento.db')
 
@@ -38,51 +37,49 @@ def adicionar_registro(tabela, novos_dados):
     conn.commit()
     conn.close()
 
-# --- Streamlit App ---
+# --- FUNÇÃO PRINCIPAL DO APP ---
+def crud_app():
+    st.title("Gerenciamento de Dados do Zoneamento (CRUD)")
 
-st.title("Gerenciamento de Dados do Zoneamento (CRUD)")
+    tabela = st.selectbox("Escolha a tabela para gerenciar:", listar_tabelas())
 
-# Escolher a tabela
-tabela = st.selectbox("Escolha a tabela para gerenciar:", listar_tabelas())
+    if tabela:
+        st.subheader(f"Dados da tabela {tabela}")
+        df = carregar_dados(tabela)
 
-if tabela:
-    st.subheader(f"Dados da tabela {tabela}")
-    df = carregar_dados(tabela)
+        st.dataframe(df, use_container_width=True)
 
-    # Exibir dados
-    st.dataframe(df)
+        st.write("---")
+        st.subheader("Editar dados")
+        edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
 
-    st.write("---")
-    st.subheader("Editar dados")
-    edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+        if st.button("Salvar Alterações"):
+            salvar_dados(tabela, edited_df)
+            st.success("Alterações salvas com sucesso!")
 
-    if st.button("Salvar Alterações"):
-        salvar_dados(tabela, edited_df)
-        st.success("Alterações salvas com sucesso!")
+        st.write("---")
+        st.subheader("Excluir registro")
+        if len(df) > 0:
+            coluna_chave = st.selectbox("Escolha a coluna de identificação para exclusão:", df.columns)
+            valor_chave = st.text_input(f"Digite o valor de {coluna_chave} a ser excluído:")
 
-    st.write("---")
-    st.subheader("Excluir registro")
-    if len(df) > 0:
-        coluna_chave = st.selectbox("Escolha a coluna de identificação para exclusão:", df.columns)
-        valor_chave = st.text_input(f"Digite o valor de {coluna_chave} a ser excluído:")
+            if st.button("Excluir Registro"):
+                if valor_chave:
+                    condicao = f"{coluna_chave} = '{valor_chave}'"
+                    deletar_registro(tabela, condicao)
+                    st.success(f"Registro onde {coluna_chave} = {valor_chave} excluído com sucesso!")
+                else:
+                    st.warning("Digite um valor para exclusão.")
 
-        if st.button("Excluir Registro"):
-            if valor_chave:
-                condicao = f"{coluna_chave} = '{valor_chave}'"
-                deletar_registro(tabela, condicao)
-                st.success(f"Registro onde {coluna_chave} = {valor_chave} excluído com sucesso!")
+        st.write("---")
+        st.subheader("Adicionar novo registro")
+        novos_dados = {}
+        for coluna in df.columns:
+            novos_dados[coluna] = st.text_input(f"{coluna}", key=f"new_{coluna}")
+
+        if st.button("Adicionar Novo Registro"):
+            if all(novos_dados.values()):
+                adicionar_registro(tabela, novos_dados)
+                st.success("Novo registro adicionado com sucesso!")
             else:
-                st.warning("Digite um valor para exclusão.")
-
-    st.write("---")
-    st.subheader("Adicionar novo registro")
-    novos_dados = {}
-    for coluna in df.columns:
-        novos_dados[coluna] = st.text_input(f"{coluna}", key=f"new_{coluna}")
-
-    if st.button("Adicionar Novo Registro"):
-        if all(novos_dados.values()):
-            adicionar_registro(tabela, novos_dados)
-            st.success("Novo registro adicionado com sucesso!")
-        else:
-            st.warning("Preencha todos os campos para adicionar um novo registro.")
+                st.warning("Preencha todos os campos para adicionar um novo registro.")
