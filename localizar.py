@@ -1,45 +1,35 @@
 import streamlit as st
 import sqlite3
 
-# Funções auxiliares
-def conectar():
-    return sqlite3.connect('zoneamento.db')
-
-def buscar_usos(tipo_uso, cidade_id):
-    conn = conectar()
-    cursor = conn.cursor()
-
-    query = '''
-        SELECT DISTINCT macrozona_codigo, zona_codigo
-        FROM usos_permitidos
-        WHERE tipo_uso LIKE ? AND permissao = 'Permitido' AND cidade_id = ?
-    '''
-    cursor.execute(query, (f"%{tipo_uso}%", cidade_id))
-    resultados = cursor.fetchall()
-
-    conn.close()
-    return resultados
-
-def pesquisar_uso():
+def pesquisar_uso(cidade_id):
     st.header("Pesquisar Uso Permitido")
 
-    conn = conectar()
-    cidades = conn.execute("SELECT * FROM cidade").fetchall()
-    conn.close()
-
-    cidade_nome = st.selectbox("Escolha a cidade:", [c[1] for c in cidades])
-    cidade_id = [c[0] for c in cidades if c[1] == cidade_nome][0]
-
-    tipo_uso_input = st.text_input("Digite o tipo de uso para pesquisar:")
+    tipo_uso_input = st.text_input("Digite o tipo de uso que deseja pesquisar:")
 
     if st.button("Buscar"):
-        if tipo_uso_input:
-            resultados = buscar_usos(tipo_uso_input, cidade_id)
-            if resultados:
-                st.success(f"Encontramos {len(resultados)} resultado(s):")
-                for macrozona, zona in resultados:
-                    st.write(f"Macrozona: {macrozona} | Zona: {zona if zona else 'Geral da Macrozona'}")
-            else:
-                st.warning("Nenhum uso permitido encontrado para essa busca.")
+        conn = sqlite3.connect('zoneamento.db')
+        cursor = conn.cursor()
+
+        query = """
+        SELECT u.tipo_uso, z.nome AS zona_nome, m.descricao AS macrozona_descricao
+        FROM usos_permitidos u
+        LEFT JOIN zona z ON u.zona_codigo = z.codigo AND u.cidade_id = z.cidade_id
+        LEFT JOIN macrozona m ON u.macrozona_codigo = m.codigo AND u.cidade_id = m.cidade_id
+        WHERE u.tipo_uso LIKE ? 
+          AND u.permissao = 'Permitido'
+          AND u.cidade_id = ?
+        """
+
+        cursor.execute(query, (f"%{tipo_uso_input}%", cidade_id))
+        resultados = cursor.fetchall()
+
+        if resultados:
+            for tipo_uso, zona_nome, macrozona_desc in resultados:
+                st.write(f"**Tipo de Uso:** {tipo_uso}")
+                st.write(f"Zona: {zona_nome}")
+                st.write(f"Macrozona: {macrozona_desc}")
+                st.markdown("---")
         else:
-            st.error("Digite um termo para buscar.")
+            st.warning("Nenhum uso permitido encontrado para esta pesquisa.")
+
+        conn.close()
