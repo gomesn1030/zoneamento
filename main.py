@@ -23,7 +23,11 @@ elif menu == "Criar Banco de Dados":
 
 elif menu == "Popular Banco de Dados":
     if st.button("Popular Banco"):
-        dbpopulate.popular_banco()
+        conn = sqlite3.connect('zoneamento.db')
+        cursor = conn.cursor()
+        cursor.executescript(dbpopulate.popular_script())
+        conn.commit()
+        conn.close()
         st.success("Banco de dados populado com sucesso!")
 
 elif menu == "Pesquisar Uso Permitido":
