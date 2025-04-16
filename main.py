@@ -5,6 +5,7 @@ import dbcreate
 import dbpopulate
 import localizar
 import crud
+import cadastros
 
 # Verificar e criar estrutura do banco de dados se necessário
 def verifica_cria_banco():
@@ -77,7 +78,7 @@ st.title(f"Sistema de Zoneamento Urbano - {cidade_selecionada_nome}")
 
 menu = st.sidebar.selectbox(
     "Escolha uma opção:",
-    ["Início", "Popular Banco de Dados", "Pesquisar Uso Permitido", "Cadastros"]
+    ["Início", "Popular Banco de Dados", "Pesquisar Uso Permitido", "Cadastros", "Cadastrar Macrozona"]
 )
 
 if menu == "Início":
@@ -93,3 +94,6 @@ elif menu == "Pesquisar Uso Permitido":
 
 elif menu == "Cadastros":
     crud.crud_app(cidade_selecionada_id)
+
+elif menu == "Cadastrar Macrozona":
+    cadastros.cadastro_macrozona(cidade_selecionada_id)
